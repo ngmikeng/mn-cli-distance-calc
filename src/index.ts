@@ -3,8 +3,13 @@ import {main} from './main';
 
 class MnCliDistanceCalc extends Command {
   async run() {
-    main().catch(error => console.log(error.stack));
-
+    main().then(() => {
+      console.log('\nDONE');
+      process.exit(1);
+    }).catch(error => {
+      console.log('\n\nERROR:', error.stack);
+      process.exit(1);
+    });
   }
 }
 

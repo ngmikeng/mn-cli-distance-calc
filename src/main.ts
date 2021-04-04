@@ -40,58 +40,64 @@ async function calcDistanceChunks({ chunkData, distanceCalcInstance, fromAddr }:
 }
 
 export const main = async () => {
-  const inApiKey = await cli.prompt(`Input the Google API Key`, { type: 'hide', required: true });
-  const inFilePath = await cli.prompt(`Input the path of the file CSV`, { required: true });
-  const inCityName = await cli.prompt(`Input the name of destination city`, { default: DEFAULT_DEST_CITY, });
-  const inOriginAddress = await cli.prompt(`Input the origin address`, { default: DEFAULT_ORIGIN_ADDR });
-  const distanceCalc = new DistanceCalculator({ apiKey: inApiKey });
-  const processFile = new ProcessFile({ filePath: inFilePath });
-  const data = await processFile.readFilePromise();
-  // map destination address
-  const newData: IDataRow[] = data.map(item => {
-    return {...item, destAddr: `${item.wardName}, ${item.districtName}, ${inCityName}`}
-  });
+  return new Promise(async (resolve, reject) => {
+    const inApiKey = await cli.prompt(`Input the Google API Key`, { type: 'hide', required: true });
+    const inFilePath = await cli.prompt(`Input the path of the file CSV`, { required: true });
+    const inCityName = await cli.prompt(`Input the name of destination city`, { default: DEFAULT_DEST_CITY, });
+    const inOriginAddress = await cli.prompt(`Input the origin address`, { default: DEFAULT_ORIGIN_ADDR });
+    const distanceCalc = new DistanceCalculator({ apiKey: inApiKey });
+    const processFile = new ProcessFile({ filePath: inFilePath });
+    const data = await processFile.readFilePromise();
+    // map destination address
+    const newData: IDataRow[] = data.map(item => {
+      return {...item, destAddr: `${item.wardName}, ${item.districtName}, ${inCityName}`}
+    });
 
-  const simpleBar = cli.progress({
-    format: 'API Progress | {bar} | {percentage}% | {value}/{total} Chunks',
-    barCompleteChar: '\u2588',
-    barIncompleteChar: '\u2591',
-    hideCursor: true
-  })
-  // process chunk data
-  const processData = new ProcessData({ inputData: newData });
-  const chunkData = processData.processToChunks({ maxChunk: MAX_ELEMENTS });
-  const virtualDataStream = new VirtualDataStream({ chunkData });
-  virtualDataStream.pushData();
-  simpleBar.start(chunkData.length, 0);
-  let chunkCount = 0;
-  let outData: IDataRow[] = [];
-  virtualDataStream.on('data', async (chunk) => {
-    try {
-      const chunkDataCalculated = await calcDistanceChunks({ distanceCalcInstance: distanceCalc, chunkData: chunk, fromAddr: inOriginAddress });
-      outData = outData.concat(chunkDataCalculated);
-      chunkCount++;
-      simpleBar.update(chunkCount);
-      if (virtualDataStream.checkIsPushDone()) {
-        virtualDataStream.done();
+    const simpleBar = cli.progress({
+      format: 'API Progress | {bar} | {percentage}% | {value}/{total} Chunks',
+      barCompleteChar: '\u2588',
+      barIncompleteChar: '\u2591',
+      hideCursor: true
+    })
+    // process chunk data
+    const processData = new ProcessData({ inputData: newData });
+    const chunkData = processData.processToChunks({ maxChunk: MAX_ELEMENTS });
+    const virtualDataStream = new VirtualDataStream({ chunkData });
+    virtualDataStream.pushData();
+    simpleBar.start(chunkData.length, 0);
+    let chunkCount = 0;
+    let outData: IDataRow[] = [];
+    virtualDataStream.on('data', async (chunk) => {
+      try {
+        const chunkDataCalculated = await calcDistanceChunks({ distanceCalcInstance: distanceCalc, chunkData: chunk, fromAddr: inOriginAddress });
+        outData = outData.concat(chunkDataCalculated);
+        chunkCount++;
+        simpleBar.update(chunkCount);
+        if (virtualDataStream.checkIsPushDone()) {
+          virtualDataStream.done();
+        }
+      } catch (error) {
+        virtualDataStream.destroy();
+        reject(error);
       }
-    } catch (error) {
-      console.log('\n\nERROR:', error.stack);
-      virtualDataStream.destroy();
-    }
-  });
-  virtualDataStream.on('end', async () => {
-    simpleBar.stop();
-    // handle write file
-    if (outData.length) {
-      console.log('Out data item: ', outData[0]);
-      const header = Object.keys(outData[0]).map(value => {
-        return { id: value, title: value }
-      })
-      await processFile.writeFileAsync(header, outData);
-    }
-    console.log('DONE');
-  });
-
-  return outData;
+    });
+    virtualDataStream.on('end', async () => {
+      simpleBar.stop();
+      if (!outData.length) {
+        console.log('Out data is empty');
+        resolve(outData);
+      }
+      // handle write file
+      try {
+        console.log('Out data item: ', outData[0]);
+        const header = Object.keys(outData[0]).map(value => {
+          return { id: value, title: value }
+        });
+        await processFile.writeFileAsync(header, outData);
+        resolve(outData);
+      } catch (error) {
+        reject(error);
+      }
+    });
+  })
 };
