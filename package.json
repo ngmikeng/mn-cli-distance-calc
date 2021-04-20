@@ -1,7 +1,7 @@
 {
   "name": "mn-cli-distance-calc",
   "description": "A Simple tool for calculating distance between a origin and multiple destinations address (by district & ward) using Google Map API.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "author": "Minh Nguyen @ngmikeng",
   "bin": {
     "mn-cli-distance-calc": "./bin/run"

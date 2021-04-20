@@ -26,7 +26,7 @@ $ npm install -g mn-cli-distance-calc
 $ mn-cli-distance-calc COMMAND
 running command...
 $ mn-cli-distance-calc (-v|--version|version)
-mn-cli-distance-calc/0.1.0 win32-x64 node-v10.15.3
+mn-cli-distance-calc/0.1.1 win32-x64 node-v10.15.3
 $ mn-cli-distance-calc --help [COMMAND]
 USAGE
   $ mn-cli-distance-calc COMMAND
