@@ -73,7 +73,8 @@ export const main = async () => {
         outData = outData.concat(chunkDataCalculated);
         chunkCount++;
         simpleBar.update(chunkCount);
-        if (virtualDataStream.checkIsPushDone()) {
+        const isPushedDone = virtualDataStream.checkIsPushDone();
+        if (isPushedDone) {
           virtualDataStream.done();
         }
       } catch (error) {

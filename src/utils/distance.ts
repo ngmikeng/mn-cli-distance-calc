@@ -21,6 +21,7 @@ export class DistanceCalculator {
           origins: [fromAddr],
           destinations: toAddrs
         },
+        timeout: 50000
       });
       return result.data;
     } catch (error) {
