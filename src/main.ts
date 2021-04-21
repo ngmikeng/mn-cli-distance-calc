@@ -64,18 +64,17 @@ export const main = async () => {
     const chunkData = processData.processToChunks({ maxChunk: MAX_ELEMENTS });
     const virtualDataStream = new VirtualDataStream({ chunkData });
     virtualDataStream.pushData();
+    // init process bar
     simpleBar.start(chunkData.length, 0);
-    let chunkCount = 0;
     let outData: IDataRow[] = [];
     virtualDataStream.on('data', async (chunk) => {
       try {
         const chunkDataCalculated = await calcDistanceChunks({ distanceCalcInstance: distanceCalc, chunkData: chunk, fromAddr: inOriginAddress });
         outData = outData.concat(chunkDataCalculated);
-        chunkCount++;
-        simpleBar.update(chunkCount);
-        const isPushedDone = virtualDataStream.checkIsPushDone();
-        if (isPushedDone) {
-          virtualDataStream.done();
+        simpleBar.update(VirtualDataStream.pushedCount);
+        // end push data stream
+        if (VirtualDataStream.isPushedDone) {
+          virtualDataStream.endPush();
         }
       } catch (error) {
         virtualDataStream.destroy();

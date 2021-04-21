@@ -9,7 +9,8 @@ interface IVirtualDataStreamOption {
 export class VirtualDataStream extends Readable {
   private chunkData: IDataRow[][] = [];
   private delayInMilliseconds = 1000;
-  private pushDone = false;
+  public static pushedCount = 0;
+  public static isPushedDone = false;
 
   constructor({ chunkData = [], delayInMilliseconds = 1000 }: IVirtualDataStreamOption) {
     super({ objectMode: true });
@@ -22,18 +23,17 @@ export class VirtualDataStream extends Readable {
     const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
     for (const chunk of this.chunkData) {
+      VirtualDataStream.pushedCount++;
+      if (this.chunkData.length === VirtualDataStream.pushedCount) {
+        VirtualDataStream.isPushedDone = true;
+      }
       // push to stream
       this.push(chunk);
       await delay(this.delayInMilliseconds);
     }
-    this.pushDone = true;
   }
 
-  checkIsPushDone() {
-    return this.pushDone;
-  }
-
-  done() {
+  endPush() {
     this.push(null);
   }
 
